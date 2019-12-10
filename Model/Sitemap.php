@@ -166,7 +166,7 @@ class Sitemap extends CoreSitemap
             [
                 'changefreq' => $helper->getCategoryChangefreq($storeId),
                 'priority'   => $helper->getCategoryPriority($storeId),
-                'collection' => $this->_getCategoryCollection($storeId),
+                'collection' => $this->_categoryFactory->create()->getCollection($storeId),
                 'url_type'   => self::URL,
             ]
         );
@@ -175,7 +175,7 @@ class Sitemap extends CoreSitemap
             [
                 'changefreq' => $helper->getProductChangefreq($storeId),
                 'priority'   => $helper->getProductPriority($storeId),
-                'collection' => $this->_getProductCollection($storeId),
+                'collection' => $this->_productFactory->create()->getCollection($storeId),
                 'url_type'   => self::URL,
             ]
         );
@@ -342,27 +342,6 @@ class Sitemap extends CoreSitemap
     }
 
     /**
-     * Get category collection
-     *
-     * @param $storeId
-     *
-     * @return array
-     */
-    public function _getCategoryCollection($storeId)
-    {
-        $collection = [];
-
-        foreach ($this->_categoryFactory->create()->getCollection($storeId) as $item) {
-            if ($this->_coreCategoryFactory->create()->load($item->getId())->getData('mp_exclude_sitemap') == 1) {
-                continue;
-            }
-            $collection[] = $item;
-        }
-
-        return $collection;
-    }
-
-    /**
      * Get page collection
      *
      * @param $storeId
@@ -371,40 +350,7 @@ class Sitemap extends CoreSitemap
      */
     public function _getPageCollection($storeId)
     {
-        $collection = [];
-        foreach ($this->_cmsFactory->create()->getCollection($storeId) as $item) {
-            if ($this->_corePageFactory->create()->load($item->getId())->getData('mp_exclude_sitemap') == 1
-                || $this->optimizeHomepage($storeId, $item)
-            ) {
-                continue;
-            }
-            $collection[] = $item;
-        }
-
-        return $collection;
-    }
-
-    /**
-     * Get product Collection
-     *
-     * @param $storeId
-     *
-     * @return array
-     */
-    public function _getProductCollection($storeId)
-    {
-        $collection = [];
-        foreach ($this->_productFactory->create()->getCollection($storeId) as $item) {
-            if ($this->_coreProductFactory->create()->load($item->getId())->getData('mp_exclude_sitemap') == 1) {
-                continue;
-            }
-            if ($this->stockItem->load($item->getId(), 'product_id')->getIsInStock() == 0) {
-                continue;
-            }
-            $collection[] = $item;
-        }
-
-        return $collection;
+        return $this->_cmsFactory->create()->getCollection($storeId, $this->willOptimizeHomepage($storeId));
     }
 
     /**
@@ -431,9 +377,8 @@ class Sitemap extends CoreSitemap
      *
      * @return bool
      */
-    public function optimizeHomepage($storeId, $page)
+    public function willOptimizeHomepage($storeId)
     {
-        return $this->helperConfig->isEnableHomepageOptimization($storeId) == 1
-               && $this->helperConfig->getConfigValue(self::HOMEPAGE_PATH, $storeId) == $page->getUrl();
+        return $this->helperConfig->isEnableHomepageOptimization($storeId) == 1;
     }
 }
